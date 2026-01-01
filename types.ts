@@ -1,3 +1,4 @@
+
 export interface Company {
   id: string;
   name: string;
@@ -8,9 +9,14 @@ export interface Company {
   phone: string;
   email: string;
   website: string;
+  locationLabel?: string; // Stores the "Location" column (e.g. "Hudson, Ohio, USA")
   rating?: number;
   services?: string[];
   description?: string;
+  facebookUrl?: string;
+  instagramUrl?: string;
+  linkedinUrl?: string;
+  twitterUrl?: string;
   [key: string]: any; // Allow other CSV columns
 }
 

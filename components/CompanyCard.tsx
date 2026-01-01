@@ -1,6 +1,7 @@
 import React from 'react';
 import { MapPin, Star, Phone, ArrowRight } from 'lucide-react';
 import { Company } from '../types';
+import { generateSlug } from '../utils/slugUtils';
 
 interface CompanyCardProps {
   company: Company;
@@ -8,6 +9,13 @@ interface CompanyCardProps {
 }
 
 export const CompanyCard: React.FC<CompanyCardProps> = ({ company, onView }) => {
+  const slug = generateSlug(company);
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    onView(company);
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 border border-slate-200 overflow-hidden flex flex-col h-full">
       <div className="p-6 flex-1">
@@ -50,12 +58,13 @@ export const CompanyCard: React.FC<CompanyCardProps> = ({ company, onView }) => 
           <Phone size={14} />
           <span>{company.phone || 'Contact for info'}</span>
         </div>
-        <button 
-          onClick={() => onView(company)}
-          className="text-blue-600 text-sm font-semibold hover:text-blue-700 flex items-center gap-1"
+        <a 
+          href={`/${slug}`}
+          onClick={handleClick}
+          className="text-blue-600 text-sm font-semibold hover:text-blue-700 flex items-center gap-1 cursor-pointer"
         >
           View Profile <ArrowRight size={14} />
-        </button>
+        </a>
       </div>
     </div>
   );

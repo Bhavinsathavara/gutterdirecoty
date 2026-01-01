@@ -1,0 +1,50 @@
+
+[
+    {
+        "id": "comp-default-1",
+        "name": "LeafGuard Gutters",
+        "website": "https://www.leafguard.com",
+        "email": "info@leafguard.com",
+        "phone": "+1-800-290-6106",
+        "address": "1595 Georgetown Rd",
+        "city": "Hudson",
+        "state": "OH",
+        "zip": "",
+        "locationLabel": "Hudson, Ohio, USA",
+        "facebookUrl": "https://www.facebook.com/LeafGuard",
+        "instagramUrl": "https://www.instagram.com/leafguard",
+        "linkedinUrl": "https://www.linkedin.com/company/leafguard",
+        "twitterUrl": "",
+        "description": "LeafGuard Gutters is a nationally recognized gutter installation company in the United States, best known for its patented one-piece seamless gutter system. The company focuses on preventing clogging caused by leaves, debris, and standing water, helping homeowners protect roofs, foundations, and landscaping from water damage. LeafGuard serves residential customers through a wide network of authorized dealers across multiple states. Their services include full gutter replacement, gutter guards, downspout optimization, and water management solutions. LeafGuard also offers warranties on materials and workmanship, providing long-term peace of mind for homeowners.",
+        "services": [
+            "Gutter Replacement",
+            "Gutter Guards",
+            "Downspout Optimization",
+            "Water Management"
+        ],
+        "rating": 4.8
+    },
+    {
+        "id": "comp-default-2",
+        "name": "Gutter Helmet",
+        "website": "https://www.gutterhelmet.com",
+        "email": "info@gutterhelmet.com",
+        "phone": "+1-800-824-3773",
+        "address": "1515 E Main St",
+        "city": "Tipp City",
+        "state": "OH",
+        "zip": "",
+        "locationLabel": "Tipp City, Ohio, USA",
+        "facebookUrl": "https://www.facebook.com/GutterHelmet",
+        "instagramUrl": "",
+        "linkedinUrl": "https://www.linkedin.com/company/gutter-helmet",
+        "twitterUrl": "",
+        "description": "Gutter Helmet is a U.S.-based gutter protection company specializing in engineered gutter guard systems designed to handle heavy rainfall and debris. The company offers aluminum gutter covers that fit over existing gutters to prevent clogging while maintaining proper water flow. Gutter Helmet serves homeowners nationwide through professional installation services. Their products are tested for extreme weather conditions and are suitable for diverse climates. The company focuses on long-term performance, reduced maintenance, and customer satisfaction.",
+        "services": [
+            "Gutter Guard Systems",
+            "Gutter Protection",
+            "Professional Installation"
+        ],
+        "rating": 4.7
+    }
+]

@@ -1,3 +1,4 @@
+
 import { Company } from '../types';
 
 export const parseCSV = (content: string): Company[] => {
@@ -32,48 +33,64 @@ export const parseCSV = (content: string): Company[] => {
     headers.forEach((header, index) => {
       const val = values[index] || '';
       
-      // Strict Priority Mapping to avoid "Company Description" becoming "Company Name"
-      
-      // 1. First check for Description fields (highest priority to filter out)
-      if (header.includes('desc') || header.includes('about') || header.includes('bio') || header.includes('info')) {
-        company.description = val;
-      } 
-      // 2. Then check for Name/Title fields
-      else if (header.includes('name') || header.includes('company') || header.includes('business') || header.includes('title')) {
+      // Strict Priority Mapping based on user provided CSV structure:
+      // Company Name,Website URL,Email,Phone,Address,City,State,Location,Facebook URL,Instagram URL,LinkedIn URL,X (Twitter) URL,Company Description
+
+      if (header === 'company name' || header === 'name') {
         company.name = val;
       }
-      // 3. Address fields
-      else if (header.includes('address') || header.includes('street') || header.includes('location')) {
-        company.address = val;
+      else if (header === 'company description' || header === 'description') {
+        company.description = val;
       }
-      else if (header.includes('city') || header.includes('town')) {
-        company.city = val;
-      }
-      else if (header.includes('state') || header.includes('province') || header.includes('region')) {
-        company.state = val;
-      }
-      else if (header.includes('zip') || header.includes('postal') || header.includes('code')) {
-        company.zip = val;
-      }
-      // 4. Contact fields
-      else if (header.includes('phone') || header.includes('tel') || header.includes('mobile') || header.includes('cell')) {
-        company.phone = val;
-      }
-      else if (header.includes('email') || header.includes('mail')) {
-        company.email = val;
-      }
-      else if (header.includes('web') || header.includes('url') || header.includes('site') || header.includes('link')) {
+      else if (header === 'website url' || header === 'website') {
         company.website = val;
       }
-      // 5. Other details
+      else if (header === 'email') {
+        company.email = val;
+      }
+      else if (header === 'phone') {
+        company.phone = val;
+      }
+      else if (header === 'address') {
+        company.address = val;
+      }
+      else if (header === 'city') {
+        company.city = val;
+      }
+      else if (header === 'state') {
+        company.state = val;
+      }
+      else if (header === 'location') {
+        // Map 'Location' column to locationLabel to avoid overwriting specific Address
+        company.locationLabel = val;
+      }
+      else if (header.includes('zip') || header.includes('postal')) {
+        company.zip = val;
+      }
       else if (header.includes('rat') || header.includes('star')) {
         company.rating = parseFloat(val) || 0;
       }
-      else if (header.includes('service') || header.includes('offer')) {
+      else if (header.includes('service')) {
         company.services = val.split(/[;,]/).map(s => s.trim()).filter(s => s.length > 0);
       }
+      // Social Media Mappings
+      else if (header.includes('facebook')) {
+        company.facebookUrl = val;
+      }
+      else if (header.includes('instagram')) {
+        company.instagramUrl = val;
+      }
+      else if (header.includes('linkedin')) {
+        company.linkedinUrl = val;
+      }
+      else if (header.includes('twitter') || header.includes('(x)')) {
+        company.twitterUrl = val;
+      }
       else {
-        company[header] = val; // Store extra fields
+        // Fallback for fuzzy matching if exact headers aren't found
+        if (!company.description && (header.includes('desc') || header.includes('about'))) company.description = val;
+        if (!company.website && (header.includes('web') || header.includes('url')) && !header.includes('facebook') && !header.includes('instagram') && !header.includes('linkedin') && !header.includes('twitter')) company.website = val;
+        if (!company.address && header.includes('street')) company.address = val;
       }
     });
 
@@ -82,9 +99,9 @@ export const parseCSV = (content: string): Company[] => {
        company.name = `Company ${i}`;
     }
     
-    // Ensure services is an array
+    // Default Services if missing
     if (!company.services || !Array.isArray(company.services) || company.services.length === 0) {
-      company.services = ["Gutter Installation", "Gutter Cleaning", "Repair"];
+      company.services = ["Gutter Installation", "Gutter Repair", "Cleaning"];
     }
     
     companies.push(company as Company);
@@ -94,9 +111,6 @@ export const parseCSV = (content: string): Company[] => {
 };
 
 export const getSampleCSV = () => {
-  return `Company Name,City,State,Phone,Website,Rating,Services,Description
-"Elite Gutter Pros","Austin","TX","(512) 555-0101","www.elitegutterpros.com",4.8,"Installation;Cleaning;Guards","Top-rated gutter services in Austin."
-"Chicago Gutter Works","Chicago","IL","(312) 555-0102","www.chicagogutters.com",4.5,"Seamless Gutters;Repair","Family owned business serving Chicago for 20 years."
-"Sunshine State Gutters","Miami","FL","(305) 555-0103","www.sunshinegutters.com",4.9,"Copper Gutters;Installation","Premium copper and aluminum gutter systems."
-"RainFlow Systems","Seattle","WA","(206) 555-0104","www.rainflow.com",4.7,"Maintenance;Cleaning","Specializing in heavy rain drainage solutions."`;
+  return `Company Name,Website URL,Email,Phone,Address,City,State,Location,Facebook URL,Instagram URL,LinkedIn URL,X (Twitter) URL,Company Description
+"LeafGuard Gutters","https://www.leafguard.com","info@leafguard.com","+1-800-290-6106","1595 Georgetown Rd","Hudson","OH","Hudson, Ohio, USA","https://www.facebook.com/LeafGuard","https://www.instagram.com/leafguard","https://www.linkedin.com/company/leafguard","","LeafGuard Gutters is a nationally recognized gutter installation company..."`;
 };
