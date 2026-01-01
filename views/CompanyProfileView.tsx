@@ -5,7 +5,7 @@ import { generateSlug } from '../utils/slugUtils';
 import { CompanyCard } from '../components/CompanyCard'; 
 import { Footer } from '../components/Footer';
 import { Header } from '../components/Header';
-import { ArrowLeft, Phone, Mail, Globe, MapPin, Check, Star, Download, LayoutGrid, Edit, Save, X, Facebook, Instagram, Linkedin, Twitter } from 'lucide-react';
+import { ArrowLeft, Phone, Mail, Globe, MapPin, Check, Star, Download, LayoutGrid, Edit, Save, X, Facebook, Instagram, Linkedin, Twitter, AlertCircle } from 'lucide-react';
 
 interface CompanyProfileViewProps {
   company: Company;
@@ -33,32 +33,57 @@ export const CompanyProfileView: React.FC<CompanyProfileViewProps> = ({
   // Editing State
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<Company>(initialCompany);
+  const [websiteError, setWebsiteError] = useState<string | null>(null);
 
   // Update local state if prop changes (e.g. from nav)
   useEffect(() => {
     setCompany(initialCompany);
     setEditForm(initialCompany);
     setIsEditing(false);
+    setWebsiteError(null);
   }, [initialCompany]);
 
   // SEO & Schema.org Update
   useEffect(() => {
+    const pageTitle = `${company.name} - ${company.city}, ${company.state} | GutterPros Directory`;
+    const pageDescription = `${company.name} provides top-rated gutter services in ${company.city}, ${company.state}. ${company.description ? company.description.substring(0, 155).trim() + (company.description.length > 155 ? '...' : '') : `Contact us today for professional gutter installation, repair, and cleaning services in ${company.state}.`}`;
+    const pageUrl = window.location.href;
+    const pageImage = "https://images.unsplash.com/photo-1621253457065-22709cb1db64?auto=format&fit=crop&q=80&w=1200"; // High-res for OG
+
     // 1. Update Title
-    document.title = `${company.name} - ${company.city}, ${company.state} | GutterPros Directory`;
+    document.title = pageTitle;
     window.scrollTo(0, 0);
 
-    // 2. Update Meta Description
-    const metaDescEl = document.querySelector('meta[name="description"]');
-    const seoDescription = `${company.name} provides top-rated gutter services in ${company.city}, ${company.state}. ${company.description ? company.description.substring(0, 155).trim() + (company.description.length > 155 ? '...' : '') : `Contact us today for professional gutter installation, repair, and cleaning services in ${company.state}.`}`;
-    
-    if (metaDescEl) {
-      metaDescEl.setAttribute('content', seoDescription);
-    } else {
-      const meta = document.createElement('meta');
-      meta.name = 'description';
-      meta.content = seoDescription;
-      document.head.appendChild(meta);
+    // 2. Helper to manage meta tags
+    const setMeta = (name: string, content: string, attribute = 'name') => {
+      let element = document.querySelector(`meta[${attribute}="${name}"]`);
+      if (!element) {
+        element = document.createElement('meta');
+        element.setAttribute(attribute, name);
+        document.head.appendChild(element);
+      }
+      element.setAttribute('content', content);
+    };
+
+    // Standard Meta
+    setMeta('description', pageDescription);
+
+    // Open Graph / Facebook / LinkedIn
+    setMeta('og:title', pageTitle, 'property');
+    setMeta('og:description', pageDescription, 'property');
+    setMeta('og:image', pageImage, 'property');
+    setMeta('og:url', pageUrl, 'property');
+    setMeta('og:type', 'business.business', 'property');
+    setMeta('og:site_name', 'GutterPros Directory', 'property');
+
+    // Canonical URL
+    let linkCanonical = document.querySelector('link[rel="canonical"]');
+    if (!linkCanonical) {
+      linkCanonical = document.createElement('link');
+      linkCanonical.setAttribute('rel', 'canonical');
+      document.head.appendChild(linkCanonical);
     }
+    linkCanonical.setAttribute('href', pageUrl);
 
     // 3. Generate JSON-LD Structured Data
     const schemaData = {
@@ -67,7 +92,11 @@ export const CompanyProfileView: React.FC<CompanyProfileViewProps> = ({
       "name": company.name,
       "description": company.description,
       "telephone": company.phone,
-      "url": window.location.href,
+      "url": pageUrl,
+      "priceRange": "$$",
+      "image": [
+        "https://images.unsplash.com/photo-1621253457065-22709cb1db64?auto=format&fit=crop&q=80&w=1000"
+      ],
       "address": {
         "@type": "PostalAddress",
         "streetAddress": company.address,
@@ -76,9 +105,22 @@ export const CompanyProfileView: React.FC<CompanyProfileViewProps> = ({
         "postalCode": company.zip,
         "addressCountry": "US"
       },
-      "image": [
-        "https://images.unsplash.com/photo-1621253457065-22709cb1db64?auto=format&fit=crop&q=80&w=1000" // Generic industry image as fallback
-      ],
+      "areaServed": {
+        "@type": "City",
+        "name": company.city,
+        "address": {
+            "@type": "PostalAddress",
+            "addressRegion": company.state,
+            "addressCountry": "US"
+        }
+      },
+      "makesOffer": company.services?.map(service => ({
+        "@type": "Offer",
+        "itemOffered": {
+            "@type": "Service",
+            "name": service
+        }
+      })),
       "sameAs": [
         company.website,
         company.facebookUrl,
@@ -94,7 +136,7 @@ export const CompanyProfileView: React.FC<CompanyProfileViewProps> = ({
             "@type": "AggregateRating",
             "ratingValue": company.rating,
             "bestRating": "5",
-            "ratingCount": "25" // Placeholder count for display
+            "ratingCount": "25" // Placeholder count for display logic
         };
     }
 
@@ -132,15 +174,21 @@ export const CompanyProfileView: React.FC<CompanyProfileViewProps> = ({
         // Cancel logic
         setEditForm(company);
         setIsEditing(false);
+        setWebsiteError(null);
       } else {
         // Start edit
         setEditForm(company);
         setIsEditing(true);
+        setWebsiteError(null);
       }
     }
   };
 
   const handleSave = () => {
+    if (websiteError) {
+      alert("Please fix the validation errors before saving.");
+      return;
+    }
     // Process services from string if needed (though we bind inputs)
     // Here we assume editForm.services is already array or we fix it
     onUpdateCompany(editForm);
@@ -157,16 +205,40 @@ export const CompanyProfileView: React.FC<CompanyProfileViewProps> = ({
      });
   };
 
+  const handleWebsiteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setEditForm({...editForm, website: val});
+    
+    if (!val) {
+      setWebsiteError(null);
+      return;
+    }
+
+    // Regex to validate that the string looks like a domain name
+    // Matches: (optional http/s) + (subdomain.) + domain + .tld + (path)
+    const urlPattern = /^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/i;
+    
+    if (!urlPattern.test(val)) {
+      setWebsiteError("Please enter a valid URL (e.g. example.com)");
+    } else {
+      setWebsiteError(null);
+    }
+  };
+
   const handleExportHTML = () => {
     const slug = generateSlug(company);
     
-    // Schema Data for Static HTML
+    // Schema Data for Static HTML (Mirroring the useEffect schema)
     const schemaData = {
       "@context": "https://schema.org",
       "@type": "HomeAndConstructionBusiness",
       "name": company.name,
       "description": company.description,
       "telephone": company.phone,
+      "priceRange": "$$",
+      "image": [
+        "https://images.unsplash.com/photo-1621253457065-22709cb1db64?auto=format&fit=crop&q=80&w=1000"
+      ],
       "address": {
         "@type": "PostalAddress",
         "streetAddress": company.address,
@@ -175,6 +247,13 @@ export const CompanyProfileView: React.FC<CompanyProfileViewProps> = ({
         "postalCode": company.zip,
         "addressCountry": "US"
       },
+      "makesOffer": company.services?.map(service => ({
+        "@type": "Offer",
+        "itemOffered": {
+            "@type": "Service",
+            "name": service
+        }
+      })),
       "sameAs": [
         company.website,
         company.facebookUrl,
@@ -191,6 +270,13 @@ export const CompanyProfileView: React.FC<CompanyProfileViewProps> = ({
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${company.name} | ${company.city}, ${company.state} Gutter Service</title>
   <meta name="description" content="${company.description ? company.description.replace(/"/g, '&quot;') : `Professional gutter services provided by ${company.name} in ${company.city}, ${company.state}.`}">
+  
+  <!-- Open Graph / Social Media -->
+  <meta property="og:title" content="${company.name} - ${company.city}, ${company.state} Gutter Services" />
+  <meta property="og:description" content="Verified gutter professional in ${company.city}, ${company.state}. Services include ${company.services?.slice(0, 3).join(', ')}." />
+  <meta property="og:type" content="business.business" />
+  <meta property="og:image" content="https://images.unsplash.com/photo-1621253457065-22709cb1db64?auto=format&fit=crop&q=80&w=1200" />
+  
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <script type="application/ld+json">
@@ -199,35 +285,41 @@ export const CompanyProfileView: React.FC<CompanyProfileViewProps> = ({
   <style>body { font-family: sans-serif; }</style>
 </head>
 <body class="bg-white text-slate-900">
-  <div class="bg-slate-900 text-white py-20 px-8">
+  <header class="bg-slate-900 text-white py-20 px-8">
     <h1 class="text-4xl font-bold mb-4">${company.name}</h1>
     <p class="text-xl">Serving ${company.city}, ${company.state}</p>
     <div class="flex gap-4 mt-6">
       <a href="tel:${company.phone}" class="bg-blue-600 text-white px-6 py-3 rounded font-bold">Call ${company.phone}</a>
       ${company.email ? `<a href="mailto:${company.email}" class="bg-white text-slate-900 px-6 py-3 rounded font-bold">Email Us</a>` : ''}
     </div>
-  </div>
-  <div class="max-w-4xl mx-auto py-12 px-8">
-    <h2 class="text-2xl font-bold mb-4">About Us</h2>
-    <p class="mb-8 text-lg text-slate-700">${company.description || "Contact us for services."}</p>
-    <h2 class="text-2xl font-bold mb-4">Services</h2>
-    <ul class="list-disc pl-5 mb-8 space-y-2">
-      ${(company.services || []).map(s => `<li>${s}</li>`).join('')}
-    </ul>
-    <div class="bg-slate-50 p-6 rounded border border-slate-200">
-      <h3 class="font-bold mb-4">Contact</h3>
-      <p><strong>Address:</strong> ${company.address || ''}, ${company.city}, ${company.state} ${company.zip || ''}</p>
-      ${company.website ? `<p class="mt-2"><strong>Website:</strong> <a href="${company.website}" class="text-blue-600">${company.website}</a></p>` : ''}
-      ${company.email ? `<p class="mt-1"><strong>Email:</strong> ${company.email}</p>` : ''}
+  </header>
+  <main class="max-w-4xl mx-auto py-12 px-8">
+    <section class="mb-12">
+      <h2 class="text-2xl font-bold mb-4">About Us</h2>
+      <p class="mb-8 text-lg text-slate-700">${company.description || "Contact us for services."}</p>
+    </section>
+    
+    <section class="mb-12">
+      <h2 class="text-2xl font-bold mb-4">Services</h2>
+      <ul class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        ${(company.services || []).map(s => `<li class="flex items-center gap-2"><span class="text-blue-600 font-bold">✓</span> ${s}</li>`).join('')}
+      </ul>
+    </section>
+
+    <address class="bg-slate-50 p-6 rounded border border-slate-200 not-italic">
+      <h3 class="font-bold mb-4 text-xl">Contact Information</h3>
+      <p class="mb-2"><strong>Address:</strong><br/> ${company.address || ''}, ${company.city}, ${company.state} ${company.zip || ''}</p>
+      ${company.website ? `<p class="mb-2"><strong>Website:</strong><br/> <a href="${company.website}" class="text-blue-600">${company.website}</a></p>` : ''}
+      ${company.email ? `<p class="mb-2"><strong>Email:</strong><br/> ${company.email}</p>` : ''}
       
       <div class="flex gap-4 mt-6">
-        ${company.facebookUrl ? `<a href="${company.facebookUrl}" target="_blank" style="font-size: 24px; color: #1877F2;"><i class="fab fa-facebook"></i></a>` : ''}
-        ${company.instagramUrl ? `<a href="${company.instagramUrl}" target="_blank" style="font-size: 24px; color: #E4405F;"><i class="fab fa-instagram"></i></a>` : ''}
-        ${company.linkedinUrl ? `<a href="${company.linkedinUrl}" target="_blank" style="font-size: 24px; color: #0A66C2;"><i class="fab fa-linkedin"></i></a>` : ''}
-        ${company.twitterUrl ? `<a href="${company.twitterUrl}" target="_blank" style="font-size: 24px; color: #000000;"><i class="fab fa-x-twitter"></i></a>` : ''}
+        ${company.facebookUrl ? `<a href="${company.facebookUrl}" target="_blank" style="font-size: 24px; color: #1877F2;" aria-label="Facebook"><i class="fab fa-facebook"></i></a>` : ''}
+        ${company.instagramUrl ? `<a href="${company.instagramUrl}" target="_blank" style="font-size: 24px; color: #E4405F;" aria-label="Instagram"><i class="fab fa-instagram"></i></a>` : ''}
+        ${company.linkedinUrl ? `<a href="${company.linkedinUrl}" target="_blank" style="font-size: 24px; color: #0A66C2;" aria-label="LinkedIn"><i class="fab fa-linkedin"></i></a>` : ''}
+        ${company.twitterUrl ? `<a href="${company.twitterUrl}" target="_blank" style="font-size: 24px; color: #000000;" aria-label="Twitter"><i class="fab fa-x-twitter"></i></a>` : ''}
       </div>
-    </div>
-  </div>
+    </address>
+  </main>
 </body>
 </html>`;
 
@@ -292,7 +384,7 @@ export const CompanyProfileView: React.FC<CompanyProfileViewProps> = ({
       />
 
       <div className="flex-1">
-        <article>
+        <article itemScope itemType="https://schema.org/HomeAndConstructionBusiness">
             {/* Hero Section */}
             <header className="bg-slate-900 text-white py-20 relative">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -307,9 +399,10 @@ export const CompanyProfileView: React.FC<CompanyProfileViewProps> = ({
                     <div className="flex items-center gap-3 mb-4">
                        <span className="bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Verified Pro</span>
                        {company.rating && (
-                          <div className="flex items-center gap-1 text-yellow-400 font-bold text-sm">
+                          <div className="flex items-center gap-1 text-yellow-400 font-bold text-sm" itemProp="aggregateRating" itemScope itemType="https://schema.org/AggregateRating">
                             <Star fill="currentColor" size={14} />
-                            <span>{company.rating} / 5.0</span>
+                            <span itemProp="ratingValue">{company.rating}</span> / <span itemProp="bestRating">5.0</span>
+                            <meta itemProp="ratingCount" content="25" />
                           </div>
                        )}
                     </div>
@@ -322,7 +415,7 @@ export const CompanyProfileView: React.FC<CompanyProfileViewProps> = ({
                         onChange={(e) => setEditForm({...editForm, name: e.target.value})}
                       />
                     ) : (
-                      <h1 className="text-4xl md:text-6xl font-bold mb-4">{company.name}</h1>
+                      <h1 className="text-4xl md:text-6xl font-bold mb-4" itemProp="name">{company.name}</h1>
                     )}
 
                     <div className="flex flex-wrap items-center gap-4 text-slate-300 text-lg mb-8">
@@ -374,7 +467,7 @@ export const CompanyProfileView: React.FC<CompanyProfileViewProps> = ({
                         <>
                           <a href={`tel:${company.phone}`} className="bg-white text-slate-900 hover:bg-slate-100 px-6 py-3 rounded-lg font-bold flex items-center gap-2 transition-colors">
                               <Phone size={18} />
-                              {company.phone}
+                              <span itemProp="telephone">{company.phone}</span>
                           </a>
                           {company.email && (
                             <a href={`mailto:${company.email}`} className="bg-blue-600 text-white hover:bg-blue-500 px-6 py-3 rounded-lg font-bold flex items-center gap-2 transition-colors">
@@ -408,7 +501,7 @@ export const CompanyProfileView: React.FC<CompanyProfileViewProps> = ({
                         placeholder="Enter company description..."
                       />
                     ) : (
-                      <div className="prose prose-slate max-w-none text-slate-600 leading-relaxed text-lg whitespace-pre-wrap">
+                      <div className="prose prose-slate max-w-none text-slate-600 leading-relaxed text-lg whitespace-pre-wrap" itemProp="description">
                         {company.description || "We are a dedicated gutter service provider committed to protecting your home from water damage."}
                       </div>
                     )}
@@ -429,11 +522,13 @@ export const CompanyProfileView: React.FC<CompanyProfileViewProps> = ({
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {company.services?.map((service, idx) => (
-                            <div key={idx} className="flex items-start gap-3 p-4 bg-slate-50 rounded-lg border border-slate-100 shadow-sm">
-                            <div className="bg-blue-100 text-blue-600 rounded-full p-1 mt-0.5">
-                                <Check size={14} strokeWidth={3} />
-                            </div>
-                            <span className="font-medium text-slate-800">{service}</span>
+                            <div key={idx} className="flex items-start gap-3 p-4 bg-slate-50 rounded-lg border border-slate-100 shadow-sm" itemProp="makesOffer" itemScope itemType="https://schema.org/Offer">
+                              <div className="bg-blue-100 text-blue-600 rounded-full p-1 mt-0.5">
+                                  <Check size={14} strokeWidth={3} />
+                              </div>
+                              <span className="font-medium text-slate-800" itemProp="itemOffered" itemScope itemType="https://schema.org/Service">
+                                <span itemProp="name">{service}</span>
+                              </span>
                             </div>
                         ))}
                       </div>
@@ -443,12 +538,12 @@ export const CompanyProfileView: React.FC<CompanyProfileViewProps> = ({
 
                 {/* Sidebar */}
                 <aside className="space-y-8">
-                <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm sticky top-24">
+                <address className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm sticky top-24 not-italic">
                     <h3 className="font-bold text-slate-900 mb-6">Contact Information</h3>
                     
                     <div className="space-y-4">
                       {/* ADDRESS */}
-                      <div className="flex items-start gap-3 text-slate-600">
+                      <div className="flex items-start gap-3 text-slate-600" itemProp="address" itemScope itemType="https://schema.org/PostalAddress">
                           <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-500 shrink-0">
                           <MapPin size={20} />
                           </div>
@@ -481,12 +576,12 @@ export const CompanyProfileView: React.FC<CompanyProfileViewProps> = ({
                               <div className="text-sm font-medium text-slate-900 mt-1">
                                   {/* Line 1: Street Address */}
                                   {company.address && (
-                                    <div className="mb-0.5">{company.address}</div>
+                                    <div className="mb-0.5" itemProp="streetAddress">{company.address}</div>
                                   )}
                                   
                                   {/* Line 2: City, State Zip */}
                                   <div className="mb-0.5">
-                                    {company.city}, {company.state} {company.zip}
+                                    <span itemProp="addressLocality">{company.city}</span>, <span itemProp="addressRegion">{company.state}</span> <span itemProp="postalCode">{company.zip}</span>
                                   </div>
 
                                   {/* Line 3: Location Label (Fallback or Extra) */}
@@ -494,6 +589,7 @@ export const CompanyProfileView: React.FC<CompanyProfileViewProps> = ({
                                   {(!company.address && company.locationLabel) && (
                                      <div className="text-slate-600 italic">{company.locationLabel}</div>
                                   )}
+                                  <meta itemProp="addressCountry" content="US" />
                               </div>
                             )}
                           </div>
@@ -515,7 +611,7 @@ export const CompanyProfileView: React.FC<CompanyProfileViewProps> = ({
                                />
                             ) : (
                               company.email ? (
-                                <a href={`mailto:${company.email}`} className="text-sm font-medium text-blue-600 hover:underline break-all block mt-1">
+                                <a href={`mailto:${company.email}`} className="text-sm font-medium text-blue-600 hover:underline break-all block mt-1" itemProp="email">
                                   {company.email}
                                 </a>
                               ) : (
@@ -533,12 +629,20 @@ export const CompanyProfileView: React.FC<CompanyProfileViewProps> = ({
                         <div className="flex-1">
                             <div className="text-xs font-semibold text-slate-400 uppercase">Website</div>
                             {isEditing ? (
-                               <input 
-                                 className="w-full border p-1 rounded text-sm mt-1"
-                                 value={editForm.website || ''}
-                                 onChange={(e) => setEditForm({...editForm, website: e.target.value})}
-                                 placeholder="www.example.com"
-                               />
+                               <div>
+                                 <input 
+                                   className={`w-full border p-1 rounded text-sm mt-1 transition-colors ${websiteError ? 'border-red-500 bg-red-50' : 'border-slate-200'}`}
+                                   value={editForm.website || ''}
+                                   onChange={handleWebsiteChange}
+                                   placeholder="www.example.com"
+                                 />
+                                 {websiteError && (
+                                   <div className="flex items-center gap-1 text-red-500 text-xs mt-1">
+                                      <AlertCircle size={10} />
+                                      <span>{websiteError}</span>
+                                   </div>
+                                 )}
+                               </div>
                             ) : (
                               company.website && (
                                 <a 
@@ -546,6 +650,7 @@ export const CompanyProfileView: React.FC<CompanyProfileViewProps> = ({
                                 target="_blank" 
                                 rel="noopener noreferrer" 
                                 className="text-sm font-medium text-blue-600 hover:underline break-all block mt-1"
+                                itemProp="url"
                                 >
                                 {company.website}
                                 </a>
@@ -607,6 +712,7 @@ export const CompanyProfileView: React.FC<CompanyProfileViewProps> = ({
                               rel="noopener noreferrer"
                               className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all"
                               title="Facebook"
+                              itemProp="sameAs"
                             >
                               <Facebook size={20} />
                             </a>
@@ -618,6 +724,7 @@ export const CompanyProfileView: React.FC<CompanyProfileViewProps> = ({
                               rel="noopener noreferrer"
                               className="w-10 h-10 rounded-full bg-pink-50 text-pink-600 flex items-center justify-center hover:bg-pink-600 hover:text-white transition-all"
                               title="Instagram"
+                              itemProp="sameAs"
                             >
                               <Instagram size={20} />
                             </a>
@@ -629,6 +736,7 @@ export const CompanyProfileView: React.FC<CompanyProfileViewProps> = ({
                               rel="noopener noreferrer"
                               className="w-10 h-10 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center hover:bg-blue-700 hover:text-white transition-all"
                               title="LinkedIn"
+                              itemProp="sameAs"
                             >
                               <Linkedin size={20} />
                             </a>
@@ -640,6 +748,7 @@ export const CompanyProfileView: React.FC<CompanyProfileViewProps> = ({
                               rel="noopener noreferrer"
                               className="w-10 h-10 rounded-full bg-slate-100 text-slate-800 flex items-center justify-center hover:bg-black hover:text-white transition-all"
                               title="X (Twitter)"
+                              itemProp="sameAs"
                             >
                               <Twitter size={20} />
                             </a>
@@ -651,7 +760,7 @@ export const CompanyProfileView: React.FC<CompanyProfileViewProps> = ({
                       )}
                     </div>
 
-                </div>
+                </address>
                 </aside>
 
             </div>

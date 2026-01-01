@@ -3,7 +3,7 @@ import { Company } from '../types';
 import { CompanyCard } from '../components/CompanyCard';
 import { Footer } from '../components/Footer';
 import { Header } from '../components/Header';
-import { Search, MapPin, SlidersHorizontal, Settings, RefreshCw, ChevronLeft, ChevronRight, Home } from 'lucide-react';
+import { Search, MapPin, SlidersHorizontal, Settings, RefreshCw, ChevronLeft, ChevronRight, Home, ArrowUp } from 'lucide-react';
 
 interface DirectoryViewProps {
   companies: Company[];
@@ -14,6 +14,7 @@ interface DirectoryViewProps {
 export const DirectoryView: React.FC<DirectoryViewProps> = ({ companies, onSelectCompany, onBack }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
+  const [showScrollTop, setShowScrollTop] = useState(false);
   
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -24,6 +25,24 @@ export const DirectoryView: React.FC<DirectoryViewProps> = ({ companies, onSelec
     document.title = "GutterPros - Find Local Services";
     window.scrollTo(0, 0);
   }, []);
+
+  // Handle Scroll for Back to Top Button
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 400) {
+        setShowScrollTop(true);
+      } else {
+        setShowScrollTop(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // Reset pagination when filters change
   useEffect(() => {
@@ -66,7 +85,7 @@ export const DirectoryView: React.FC<DirectoryViewProps> = ({ companies, onSelec
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col pt-16">
+    <div className="min-h-screen bg-slate-50 flex flex-col pt-16 relative">
       
       {/* 1. Header */}
       <Header 
@@ -221,6 +240,17 @@ export const DirectoryView: React.FC<DirectoryViewProps> = ({ companies, onSelec
       </main>
 
       <Footer />
+
+      {/* Back to Top Button */}
+      {showScrollTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-8 right-8 bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 hover:scale-110 transition-all duration-300 z-50 animate-in fade-in slide-in-from-bottom-4 shadow-blue-900/20"
+          aria-label="Back to top"
+        >
+          <ArrowUp size={24} />
+        </button>
+      )}
     </div>
   );
 };
